@@ -1,0 +1,53 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "devops-demo-app"
+        TAG = "latest"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo "Building Docker image..."
+                sh "docker build -t ${IMAGE_NAME}:${TAG} ."
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo "Testing Docker image..."
+                sh """
+                docker run --rm ${IMAGE_NAME}:${TAG} echo 'Container started successfully'
+                """
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo "Deploying container..."
+                sh """
+                docker stop ${IMAGE_NAME} || true
+                docker rm ${IMAGE_NAME} || true
+                docker run -d --name ${IMAGE_NAME} -p 8080:80 ${IMAGE_NAME}:${TAG}
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Pipeline finished successfully ✅"
+        }
+        failure {
+            echo "Pipeline failed ❌"
+        }
+    }
+}
+
